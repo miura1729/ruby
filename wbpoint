@@ -1,0 +1,37 @@
+array.c:    RARRAY_PTR(ary)[idx] = val;  # rb_ary_store
+array.c:    RARRAY_PTR(ary)[idx] = item;  # rb_ary_push_1
+array.c:	    RARRAY_PTR(ary)[i] = v; # rb_ary_fill
+array.c:		chosen[lev] = RARRAY_PTR(ary)[stack[lev+1] = stack[lev]+1]; #  maybe not esssery
+enum.c:    RARRAY_PTR(data->buf)[data->n*2] = v; # maybe not nesssery
+enum.c:    RARRAY_PTR(data->buf)[data->n*2+1] = i; # maybe not nesssery
+enum.c:	RARRAY_PTR(ary)[i/2] = RARRAY_PTR(ary)[i]; # maybe not nesssery
+regparse.c:    SCANENV_MEM_NODES(env)[num] = node; #  maybe not nesssery 
+struct.c:    return RSTRUCT_PTR(s)[i] = val; # rb_struct_aset
+
+variable.c:        ROBJECT_IVPTR(obj)[index] = val; # rb_ivar_set
+
+vm_eval.c:		    RARRAY_PTR(errat)[0] = RARRAY_PTR(bt2)[0]; # eval_string_with_cref
+
+array.c:            ARY_SET_PTR(ary, ptr); #  maybe not nesssery 
+array.c:            ARY_SET_PTR(ary, ptr); #  maybe not nesssery 
+array.c:        ARY_SET_PTR((VALUE)shared, RARRAY_PTR(ary));  # maybe not nesssery 
+array.c:        ARY_SET_PTR(result, RARRAY_PTR(ary));
+array.c:                ARY_SET_PTR(ary, RARRAY_PTR(tmp));
+array.c:        ARY_SET_PTR(copy, RARRAY_PTR(orig));
+
+array.c:            MEMCPY(ptr, ARY_EMBED_PTR(ary), VALUE, len); # maybe not nesssery 
+array.c:            MEMCPY(ARY_EMBED_PTR(ary), ptr, VALUE, len); # maybe not nesssery 
+array.c:        MEMCPY(ARY_EMBED_PTR(subst), RARRAY_PTR(ary), VALUE, RARRAY_LEN(ary)); # maybe not nesssery 
+array.c:        MEMCPY(ARY_EMBED_PTR(result), RARRAY_PTR(ary) + offset, VALUE, len); # maybe not nesssery 
+array.c:	MEMCPY(ARY_EMBED_PTR(ary), tmp, VALUE, len); # maybe not nesssery 
+array.c:            MEMCPY(RARRAY_PTR(ary), ARY_EMBED_PTR(tmp), VALUE, ARY_EMBED_LEN(tmp));# maybe not nesssery 
+
+array.c:	st_table *tbl = RHASH(hash)->ntbl; # maybe not nesssery 
+hash.c:        RHASH(hash)->ntbl = st_init_table(&objhash); # maybe not nesssery 
+hash.c:    RHASH(hash)->ntbl = tbl; # maybe not nesssery 
+hash.c:	st_insert(RHASH(hash)->ntbl, key, val); # rb_hash_aset
+hash.c:	st_insert2(RHASH(hash)->ntbl, key, val, copy_str_key); # rb_hash_aset
+hash.c:    data.tbl = RHASH(hash2)->ntbl; # maybe not nesssery 
+hash.c:    st_insert(RHASH(hash)->ntbl, key, value); # rb_hash_update_i
+hash.c:    st_insert(RHASH(hash)->ntbl, key, value); # rb_hash_update_block_i
+hash.c:    st_insert(RHASH(hash)->ntbl, key, value); # rb_hash_update_func_i
