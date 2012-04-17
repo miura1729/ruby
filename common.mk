@@ -641,7 +641,8 @@ file.$(OBJEXT): {$(VPATH)}file.c $(RUBY_H_INCLUDES) {$(VPATH)}io.h \
 gc.$(OBJEXT): {$(VPATH)}gc.c $(RUBY_H_INCLUDES) {$(VPATH)}re.h \
   {$(VPATH)}regex.h $(ENCODING_H_INCLUDES) $(VM_CORE_H_INCLUDES) \
   {$(VPATH)}gc.h {$(VPATH)}io.h {$(VPATH)}eval_intern.h {$(VPATH)}util.h \
-  {$(VPATH)}debug.h {$(VPATH)}internal.h {$(VPATH)}constant.h
+  {$(VPATH)}debug.h {$(VPATH)}internal.h {$(VPATH)}constant.h \
+  {$(VPATH)}eden_alloc.c {$(VPATH)}eden_alloc.h
 hash.$(OBJEXT): {$(VPATH)}hash.c $(RUBY_H_INCLUDES) {$(VPATH)}util.h \
   $(ENCODING_H_INCLUDES)
 inits.$(OBJEXT): {$(VPATH)}inits.c $(RUBY_H_INCLUDES) \

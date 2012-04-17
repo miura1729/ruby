@@ -344,6 +344,8 @@ struct gc_list {
 #define CALC_EXACT_MALLOC_SIZE 0
 #endif
 
+#include "eden_alloc.h"
+
 typedef struct rb_objspace {
     struct {
 	size_t limit;
@@ -395,6 +397,11 @@ typedef struct rb_objspace {
     struct gc_list *global_list;
     size_t count;
     int gc_stress;
+
+    /* member for eden arena */
+    ggrb_eden_arena_node_t *eden_arena;
+    int eden_last_allocae_pos;
+    ggrb_eden_arena_node_t *eden_arena_tab[2][128];
 } rb_objspace_t;
 
 #if defined(ENABLE_VM_OBJSPACE) && ENABLE_VM_OBJSPACE
@@ -1304,6 +1311,9 @@ heaps_increment(rb_objspace_t *objspace)
     }
     return FALSE;
 }
+
+/* Eden heap definition */
+#include "eden_alloc.c"
 
 int
 rb_during_gc(void)
