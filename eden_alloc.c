@@ -15,7 +15,7 @@
 #define HASH_FUNC1(obj) (((((uintptr_t)(obj)) >> 1) + (((uintptr_t)(obj)) / 255)) & 0x7f)
 
 int
-eden_add_table(ggrb_eden_arena_node_t ***table, ggrb_eden_arena_node_t *val)
+eden_add_table(ggrb_eden_arena_node_t *table[2][128], ggrb_eden_arena_node_t *val)
 {
   int tcnt = 0;
   ggrb_eden_arena_node_t *nval;
@@ -73,23 +73,35 @@ eden_add_table(ggrb_eden_arena_node_t ***table, ggrb_eden_arena_node_t *val)
 void
 add_eden_arena(rb_objspace_t *objspace)
 {
+  unsigned i;
   ggrb_eden_arena_node_t *arena;
+  ggrb_eden_arena_node_t *narena;
 
+  arena = NULL;
   do {
-    arena = (ggrb_eden_arena_node_t *)aligned_malloc(HEAP_ALIGN, EDEN_ARENA_SIZE);
+    narena = (ggrb_eden_arena_node_t *)aligned_malloc(HEAP_ALIGN, EDEN_ARENA_SIZE);
+    if (arena) {
+      aligned_free(arena);
+    }
+    arena = narena;
     arena->next = objspace->eden_arena;
+    for (i = 0; i < EDEN_BITMAP_SIZE; i++) {
+      arena->bitmap[i] = -1;
+    }
+    i--;
+    arena->bitmap[i] ^= 0x7 << 29;
     objspace->eden_arena = arena;
 
   } while (eden_add_table(objspace->eden_arena_tab, arena));
 }
 
-RVALUE *
+eden_body_t *
 eden_alloc()
 {
   rb_objspace_t *objspace = &rb_objspace;
   ggrb_eden_arena_node_t *arena = objspace->eden_arena;
 
-  int bitmappos = objspace->eden_last_allocae_pos;
+  unsigned bitmappos = objspace->eden_last_allocae_pos;
   unsigned *bitmap = arena->bitmap;
   unsigned bitcont;
   int freepos;
@@ -112,25 +124,24 @@ eden_alloc()
   }
 
   bitcont = bitmap[bitmappos];
-  freepos = ffs(bitcont);
+  freepos = ffs(bitcont) - 1;
   bitmap[bitmappos] = bitcont & (bitcont - 1);
 
   return (arena->body + EDEN_BODY_OFFSET(bitmappos, freepos));
 }
 
 void
-eden_free(RVALUE *obj)
+eden_free(eden_body_t *obj)
 {
   ggrb_eden_arena_node_t *arena;
   int bitmappos;
   int byteoff;
   int bitoff;
 
-  arena = (ggrb_eden_arena_node_t *)(((uintptr_t)obj) & (~(EDEN_ARENA_PAGE - 1)));
-  bitmappos = (uintptr_t)arena;
-  bitmappos -=  (uintptr_t)obj;
+  arena = EDEN_OBJ2TOP(obj);
+  bitmappos = (uintptr_t)obj - (uintptr_t)arena;
   bitmappos -= offsetof(ggrb_eden_arena_node_t, body);
-  bitmappos /= sizeof(RVALUE);
+  bitmappos /= sizeof(eden_body_t);
   byteoff = EDEN_BITMAP_BYTEOFF(bitmappos);
   bitoff = EDEN_BITMAP_BITOFF(bitmappos);
 

@@ -404,6 +404,8 @@ typedef struct rb_objspace {
     ggrb_eden_arena_node_t *eden_arena_tab[2][128];
 } rb_objspace_t;
 
+void add_eden_arena(rb_objspace_t *);
+
 #if defined(ENABLE_VM_OBJSPACE) && ENABLE_VM_OBJSPACE
 #define rb_objspace (*GET_VM()->objspace)
 #define ruby_initial_gc_stress	initial_params.gc_stress
@@ -1259,6 +1261,7 @@ add_heap_slots(rb_objspace_t *objspace, size_t add)
 static void
 init_heap(rb_objspace_t *objspace)
 {
+  RVALUE *foo;
     add_heap_slots(objspace, HEAP_MIN_SLOTS / HEAP_OBJ_LIMIT);
 #ifdef USE_SIGALTSTACK
     {
@@ -1272,6 +1275,11 @@ init_heap(rb_objspace_t *objspace)
 
     objspace->profile.invoke_time = getrusage_time();
     finalizer_table = st_init_numtable();
+
+    /* Eden Arena */
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
 }
 
 static void
