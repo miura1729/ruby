@@ -84,45 +84,50 @@ add_eden_arena(rb_objspace_t *objspace)
       aligned_free(arena);
     }
     arena = narena;
-    arena->next = objspace->eden_arena;
+    arena->next = objspace->eden_arena_root;
     for (i = 0; i < EDEN_BITMAP_SIZE; i++) {
       arena->bitmap[i] = -1;
     }
     i--;
     arena->bitmap[i] ^= 0x7 << 29;
-    objspace->eden_arena = arena;
-
-  } while (eden_add_table(objspace->eden_arena_tab, arena));
+    objspace->eden_arena_root = arena;
+    objspace->eden_arena_current = arena;
+  } while (!eden_add_table(objspace->eden_arena_tab, arena));
 }
 
 eden_body_t *
-eden_alloc()
+eden_alloc(void)
 {
   rb_objspace_t *objspace = &rb_objspace;
-  ggrb_eden_arena_node_t *arena = objspace->eden_arena;
+  ggrb_eden_arena_node_t *arena = objspace->eden_arena_current;
 
   unsigned bitmappos = objspace->eden_last_allocae_pos;
-  unsigned *bitmap = arena->bitmap;
+  unsigned *bitmap;
   unsigned bitcont;
   int freepos;
 
  retry:
 
+  bitmap = arena->bitmap;
   /* Skip bitmap all used */
   while (bitmap[bitmappos] == 0){
     bitmappos++;
   }
   if (bitmappos >= EDEN_BITMAP_SIZE) {
     arena = arena->next;
+    objspace->eden_arena_current = arena;
     if (arena) {
       bitmappos = 0;		/* Try next arena node */
+      puts("Change\n");
       goto retry;
     } 
     else {
       // eden_gc(objspace);
+      puts("You must GC\n");
     }
   }
 
+  objspace->eden_last_allocae_pos = bitmappos;
   bitcont = bitmap[bitmappos];
   freepos = ffs(bitcont) - 1;
   bitmap[bitmappos] = bitcont & (bitcont - 1);

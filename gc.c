@@ -399,7 +399,8 @@ typedef struct rb_objspace {
     int gc_stress;
 
     /* member for eden arena */
-    ggrb_eden_arena_node_t *eden_arena;
+    ggrb_eden_arena_node_t *eden_arena_root;
+    ggrb_eden_arena_node_t *eden_arena_current;
     int eden_last_allocae_pos;
     ggrb_eden_arena_node_t *eden_arena_tab[2][128];
 } rb_objspace_t;
@@ -1261,7 +1262,6 @@ add_heap_slots(rb_objspace_t *objspace, size_t add)
 static void
 init_heap(rb_objspace_t *objspace)
 {
-  RVALUE *foo;
     add_heap_slots(objspace, HEAP_MIN_SLOTS / HEAP_OBJ_LIMIT);
 #ifdef USE_SIGALTSTACK
     {
@@ -1277,6 +1277,18 @@ init_heap(rb_objspace_t *objspace)
     finalizer_table = st_init_numtable();
 
     /* Eden Arena */
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
+    add_eden_arena(objspace);
     add_eden_arena(objspace);
     add_eden_arena(objspace);
     add_eden_arena(objspace);
@@ -1359,11 +1371,7 @@ rb_newobj(void)
 	}
     }
 
-    obj = (VALUE)objspace->heap.free_slots->freelist;
-    objspace->heap.free_slots->freelist = RANY(obj)->as.free.next;
-    if (objspace->heap.free_slots->freelist == NULL) {
-        unlink_free_heap_slot(objspace, objspace->heap.free_slots);
-    }
+    obj = (VALUE)eden_alloc();
 
     MEMZERO((void*)obj, RVALUE, 1);
 #ifdef GC_DEBUG
@@ -2458,7 +2466,7 @@ rb_gc_force_recycle(VALUE p)
 {
     rb_objspace_t *objspace = &rb_objspace;
     struct heaps_slot *slot;
-
+#if 0
     if (MARKED_IN_BITMAP(GET_HEAP_BITMAP(p), p)) {
         add_slot_local_freelist(objspace, (RVALUE *)p);
     }
@@ -2469,6 +2477,7 @@ rb_gc_force_recycle(VALUE p)
             link_free_heap_slot(objspace, slot);
         }
     }
+#endif
 }
 
 static inline void

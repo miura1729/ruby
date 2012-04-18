@@ -36,7 +36,7 @@
 #define EDEN_ARENA_SIZE (sizeof(struct eden_arena_node) + (8 * sizeof(unsigned)* EDEN_RVALUE_NUM))
 
 #define EDEN_BODY_OFFSET(byteoff, bitoff) \
-  ((byteoff) * sizeof(unsigned) + (bitoff))
+  ((byteoff) * sizeof(unsigned) * 8 + (bitoff))
 #define EDEN_BITMAP_BYTEOFF(body_offset) \
   ((body_offset) / (sizeof(unsigned) * 8))
 #define EDEN_BITMAP_BITOFF(body_offset) \
