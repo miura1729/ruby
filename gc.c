@@ -346,6 +346,13 @@ struct gc_list {
 
 #include "eden_alloc.h"
 
+typedef struct ggrb_heap_header {
+  struct ggrb_heap_header *next;
+  struct ggrb_heap_header *prev;
+
+  VALUE body[0];
+} ggrb_heap_header;
+
 typedef struct rb_objspace {
     struct {
 	size_t limit;
@@ -403,6 +410,7 @@ typedef struct rb_objspace {
     ggrb_eden_arena_node_t *eden_arena_current;
     int eden_last_allocae_pos;
     ggrb_eden_arena_node_t *eden_arena_tab[2][128];
+    ggrb_heap_header eden_heap_list;
 } rb_objspace_t;
 
 void add_eden_arena(rb_objspace_t *);
@@ -825,17 +833,24 @@ vm_malloc_fixup(rb_objspace_t *objspace, void *mem, size_t size)
 static void *
 vm_xmalloc(rb_objspace_t *objspace, size_t size)
 {
-    void *mem;
+    ggrb_heap_header *mem;
 
     size = vm_malloc_prepare(objspace, size);
-    TRY_WITH_GC(mem = malloc(size));
-    return vm_malloc_fixup(objspace, mem, size);
+    TRY_WITH_GC(mem = malloc(size + sizeof(ggrb_heap_header)));
+    mem->next = objspace->eden_heap_list.next;
+    if (mem->next) {
+      mem->next->prev = mem;
+    }
+    mem->prev = &objspace->eden_heap_list;
+    objspace->eden_heap_list.next = mem;
+    objspace->eden_heap_list.prev = NULL;
+    return vm_malloc_fixup(objspace, mem->body, size);
 }
 
 static void *
 vm_xrealloc(rb_objspace_t *objspace, void *ptr, size_t size)
 {
-    void *mem;
+    ggrb_heap_header *mem;
 
     if ((ssize_t)size < 0) {
 	negative_size_allocation_error("negative re-allocation size");
@@ -854,10 +869,11 @@ vm_xrealloc(rb_objspace_t *objspace, void *ptr, size_t size)
     ptr = (size_t *)ptr - 1;
 #endif
 
-    mem = realloc(ptr, size);
+    ptr = (uintptr_t)ptr -  sizeof(ggrb_heap_header);
+    mem = realloc(ptr, size + sizeof(ggrb_heap_header));
     if (!mem) {
 	if (garbage_collect_with_gvl(objspace)) {
-	    mem = realloc(ptr, size);
+	    mem = realloc(ptr, size + sizeof(ggrb_heap_header));
 	}
 	if (!mem) {
 	    ruby_memerror();
@@ -871,7 +887,14 @@ vm_xrealloc(rb_objspace_t *objspace, void *ptr, size_t size)
     mem = (size_t *)mem + 1;
 #endif
 
-    return mem;
+    mem->next = objspace->eden_heap_list.next;
+    mem->prev = &objspace->eden_heap_list;
+    if (mem->next) {
+      mem->next->prev = mem;
+    }
+    objspace->eden_heap_list.next = mem;
+    objspace->eden_heap_list.prev = NULL;
+    return mem->body;
 }
 
 static void
@@ -887,6 +910,7 @@ vm_xfree(rb_objspace_t *objspace, void *ptr)
     }
 #endif
 
+    ptr = (void *)((uintptr_t)ptr - offsetof(ggrb_heap_header, body));
     free(ptr);
 }
 
@@ -915,14 +939,21 @@ ruby_xmalloc2(size_t n, size_t size)
 static void *
 vm_xcalloc(rb_objspace_t *objspace, size_t count, size_t elsize)
 {
-    void *mem;
+    ggrb_heap_header *mem;
     size_t size;
 
     size = xmalloc2_size(count, elsize);
     size = vm_malloc_prepare(objspace, size);
 
-    TRY_WITH_GC(mem = calloc(1, size));
-    return vm_malloc_fixup(objspace, mem, size);
+    TRY_WITH_GC(mem = calloc(1, size + sizeof(ggrb_heap_header)));
+    mem->next = objspace->eden_heap_list.next;
+    mem->prev = &objspace->eden_heap_list;
+    if (mem->next) {
+      mem->next->prev = mem;
+    }
+    objspace->eden_heap_list.next = mem;
+    objspace->eden_heap_list.prev = NULL;
+    return vm_malloc_fixup(objspace, mem->body, size);
 }
 
 void *
@@ -951,7 +982,7 @@ void
 ruby_xfree(void *x)
 {
     if (x)
-	vm_xfree(&rb_objspace, x);
+       vm_xfree(&rb_objspace, x);
 }
 
 
